@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEMA - Ciências em Duas Línguas</title>
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+
+        /* CONTAINER PRINCIPAL */
+        #app-container {
+            width: 100%; max-width: 420px; background-color: #ffffff; height: 100%;
+            display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
+        }
+
+        /* GERENCIAMENTO DE TELAS */
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
+        .screen.active { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- HEADER --- */
+        header {
+            background-color: #ce1126; color: white; padding: 20px 20px 25px 20px;
+            text-align: center; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px;
+            z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-shrink: 0; position: relative;
+        }
+        header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; }
+        header p { font-size: 0.8rem; text-transform: uppercase; opacity: 0.9; }
+        
+        .btn-back {
+            position: absolute; left: 20px; top: 25px;
+            background: rgba(255,255,255,0.25); border: none; color: white;
+            width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .btn-back:active { background: rgba(255,255,255,0.4); }
+
+        /* --- CONTEÚDO COM SCROLL --- */
+        .scroll-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
+
+        /* ======= TELA HOME ======= */
+        .title-section {
+            margin-top: 15px; text-align: center; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; padding: 0 20px; z-index: 5;
+        }
+        .flag-icon { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.15); object-fit: cover;}
+        .course-name h2 { font-size: 1.1rem; color: #333; font-weight: 700; line-height: 1.2; }
+        .course-name span { display: block; font-size: 0.8rem; color: #666; font-weight: normal; margin-top: 4px; }
+
+        .center-stage {
+            flex: 1; display: flex; justify-content: center; align-items: center; position: relative; width: 100%; min-height: 300px;
+        }
+        
+        .bg-decoration {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 320px; aspect-ratio: 1/1; border-radius: 50%; z-index: 0; overflow: hidden; pointer-events: none;
+        }
+
+        .nav-menu { width: 100%; display: flex; flex-direction: column; gap: 25px; z-index: 2; padding: 0 40px; }
+        .btn-nav {
+            background: linear-gradient(90deg, #003366 0%, #004080 100%);
+            color: white; border: none; padding: 20px; font-size: 1.1rem; font-weight: 700; border-radius: 30px;
+            cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0, 51, 102, 0.4); width: 100%; transition: transform 0.1s; letter-spacing: 0.5px;
+        }
+        .btn-nav:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(0, 51, 102, 0.3); }
+
+        /* ======= MENU DE TEXTOS (CARDS) ======= */
+        .topic-card {
+            background: white; border-radius: 15px; padding: 25px 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid #003366;
+            cursor: pointer; transition: transform 0.2s, background-color 0.2s;
+            display: flex; justify-content: space-between; align-items: center; user-select: none;
+        }
+        .topic-card:hover { transform: translateX(5px); background-color: #fafafa; }
+        .topic-card:active { background-color: #eee; }
+        .topic-title { font-size: 1.1rem; font-weight: 700; color: #333; pointer-events: none; }
+        .topic-icon { color: #009b3a; font-size: 1.5rem; pointer-events: none; }
+
+        /* ======= MODAL DE LEITURA ====== */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.6); 
+            z-index: 9999;
+            display: none; 
+            justify-content: center; align-items: flex-end;
+            backdrop-filter: blur(3px);
+        }
+        .modal-overlay.open { display: flex !important; animation: fadeIn 0.2s; }
+
+        .modal-content {
+            background-color: #fff; width: 100%; height: 95%;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+            padding: 0; display: flex; flex-direction: column;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3); 
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-header {
+            padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;
+            background: #003366; color: white; border-top-left-radius: 25px; border-top-right-radius: 25px; flex-shrink: 0;
+        }
+        .modal-title { font-weight: 700; font-size: 1rem; flex: 1; padding-right: 10px; }
+        .close-modal { background: rgba(255,255,255,0.2); width: 32px; height: 32px; border-radius: 50%; border: none; color: white; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; padding-bottom: 50px; }
+        .lang-block { margin-bottom: 25px; }
+        .lang-label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: #ce1126; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .lang-text { font-size: 1rem; line-height: 1.6; color: #333; text-align: justify; }
+        .en-text { font-style: italic; color: #444; background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #ce1126; }
+    
+        .vocab-highlight {
+            font-weight: 700;
+            color: #003366;
+            background-color: #e6f0ff;
+            padding: 0 3px;
+            border-radius: 3px;
+            font-style: normal; 
+        }
+
+        .vocab-section { background-color: #f0fff4; border-top: 2px solid #009b3a; padding: 15px; border-radius: 8px; margin-top: 30px; }
+        .vocab-title { color: #009b3a; font-weight: 800; font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+        .vocab-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .vocab-item { font-size: 0.9rem; color: #444; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; }
+        .vocab-item strong { color: #003366; }
+
+
+        /* ====== QUIZ ======= */
+        .question-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .q-title { font-weight: 700; color: #003366; margin-bottom: 15px; font-size: 1rem; line-height: 1.4; }
+        .options-list { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn {
+            background-color: #fff; border: 2px solid #e9ecef; padding: 12px 15px;
+            border-radius: 10px; text-align: left; font-size: 0.9rem; color: #555; cursor: pointer; transition: 0.2s; font-weight: 500;
+        }
+        .option-btn:hover { background-color: #f8f9fa; border-color: #dee2e6; }
+        
+        .correct { background-color: #d4edda !important; border-color: #28a745 !important; color: #155724 !important; font-weight: 700; position: relative; }
+        .correct::after { content: '✔'; position: absolute; right: 15px; }
+        .wrong { background-color: #f8d7da !important; border-color: #dc3545 !important; color: #721c24 !important; opacity: 0.8; }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+
+        <div id="screen-home" class="screen active">
+            <header>
+                <h1>IEMA</h1>
+                <p>Instituto de Educação, Ciência e Tecnologia<br>do Maranhão</p>
+            </header>
+
+            <div class="title-section">
+                <img src="https://flagcdn.com/w160/br.png" alt="Brasil" class="flag-icon">
+                <div class="course-name">
+                    <h2>Ciências em<br>Duas Línguas</h2>
+                    <span>Eletiva</span>
+                </div>
+                <img src="https://flagcdn.com/w160/us.png" alt="EUA" class="flag-icon">
+            </div>
+
+            <div class="center-stage">
+                <div class="bg-decoration">
+                    <div class="bg-decoration-img"></div>
+                </div>
+                <nav class="nav-menu">
+                    <button class="btn-nav" onclick="navTo('texts')">Textos Bilíngues</button>
+                    <button class="btn-nav" onclick="navTo('quiz')">Quiz Interativo</button>
+                </nav>
+            </div>
+        </div>
+
+        <div id="screen-texts" class="screen">
+            <header>
+                <button class="btn-back" onclick="navTo('home')">❮</button>
+                <h1>Escolha um Tópico</h1>
+            </header>
+
+            <div class="scroll-content">
+                <p style="text-align: center; color: #666; font-size: 0.9rem; margin-bottom: 10px;">Toque em um cartão para ler o conteúdo completo.</p>
+                
+                <div class="topic-card" onclick="abrirModalTexto(1)">
+                    <div class="topic-title">1. Ciência da Alimentação</div>
+                    <div class="topic-icon">➔</div>
+                </div>
+
+                <div class="topic-card" onclick="abrirModalTexto(2)">
+                    <div class="topic-title">2. Qualidade da Água e Alimentos</div>
+                    <div class="topic-icon">➔</div>
+                </div>
+
+                <div class="topic-card" onclick="abrirModalTexto(3)">
+                    <div class="topic-title">3. IA e Consumo de Água</div>
+                    <div class="topic-icon">➔</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-quiz" class="screen">
+            <header>
+                <button class="btn-back" onclick="navTo('home')">❮</button>
+                <h1>Quiz Interativo</h1>
+            </header>
+
+            <div class="scroll-content">
+                
+                <div class="question-card">
+                    <p class="q-title">1. Por que a Ciência da Alimentação é importante?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) Ajuda no emagrecimento</button>
+                        <button class="option-btn" onclick="check(this, false)">b) É um mercado lucrativo que movimenta na economia</button>
+                        <button class="option-btn" onclick="check(this, true)">c) Ajuda a prevenir epidemias e doenças em geral.</button>
+                        <button class="option-btn" onclick="check(this, false)">d) Nenhuma das alternativas.</button>
+                        <button class="option-btn" onclick="check(this, false)">e) Todas as alternativas.</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <p class="q-title">2. The Quality Control segment of a food company is useful for?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) Ensure the food’s deliciousness.</button>
+                        <button class="option-btn" onclick="check(this, false)">b) To make sure it’s at a high enough price and profitable.</button>
+                        <button class="option-btn" onclick="check(this, false)">c) To make sure that the appearance is good.</button>
+                        <button class="option-btn" onclick="check(this, false)">d) To avoid legal issues.</button>
+                        <button class="option-btn" onclick="check(this, true)">e) To better take care of people’s health, making sure it doesn’t only fit the standards of flavour</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <p class="q-title">3. O que é a Doença da Vaca Louca?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) uma infecção por fungos</button>
+                        <button class="option-btn" onclick="check(this, false)">b) a insatisfação dos clientes de redes de fast-food...</button>
+                        <button class="option-btn" onclick="check(this, false)">c) Uma espécie de vaca com problemas neurológicos.</button>
+                        <button class="option-btn" onclick="check(this, true)">d) Uma doença transmitida para humanos por meio de carne infectada com um longo período de incubação.</button>
+                        <button class="option-btn" onclick="check(this, false)">e) Uma gripe.</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <p class="q-title">4. What is the importance of ensuring the quality of what we consume?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) To make sure it’s a delicious and satisfying meal.</button>
+                        <button class="option-btn" onclick="check(this, false)">b) To raise profits.</button>
+                        <button class="option-btn" onclick="check(this, false)">c) To make sure people have a job.</button>
+                        <button class="option-btn" onclick="check(this, true)">d) To ensure the safety and avoid illness or life-threatening situations, along with avoiding the resurgence of plagues.</button>
+                        <button class="option-btn" onclick="check(this, false)">e) None of the above.</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <p class="q-title">5. O que é IA?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) Um personagem em um filme infantil.</button>
+                        <button class="option-btn" onclick="check(this, false)">b) A abreviação de um nome pessoal.</button>
+                        <button class="option-btn" onclick="check(this, false)">c) Uma classificação de cargo em um escritório.</button>
+                        <button class="option-btn" onclick="check(this, false)">d) Uma nota musical.</button>
+                        <button class="option-btn" onclick="check(this, true)">e) Sistemas de computador capazes de fazer tarefas que seriam necessárias à inteligência humana.</button>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <p class="q-title">6. How does AI harm the environment?</p>
+                    <div class="options-list">
+                        <button class="option-btn" onclick="check(this, false)">a) By needing constant expansion...</button>
+                        <button class="option-btn" onclick="check(this, false)">b) By the large amounts of energy used...</button>
+                        <button class="option-btn" onclick="check(this, false)">c) By the large amounts of electronic waste...</button>
+                        <button class="option-btn" onclick="check(this, true)">d) By the large amount of water required to cool down the overheated systems.</button>
+                        <button class="option-btn" onclick="check(this, false)">e) All of the above.</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="text-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span id="modal-title" class="modal-title">Título do Texto</span>
+                    <button class="close-modal" onclick="fecharModalTexto()">×</button>
+                </div>
+                <div id="modal-body-content" class="modal-body">
+                    </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const textsData = {
+            1: {
+                title: "Ciência da Alimentação",
+                en: `The science behind our meals is something that often, people barely pay any mind to. However, with every bite we take, there is a vast <span class="vocab-highlight">scientific</span> process to ensure its <span class="vocab-highlight">utmost</span> <span class="vocab-highlight">safety</span> and <span class="vocab-highlight">deliciousness</span>, along with other criteria. From the quality and <span class="vocab-highlight">composition</span> choosing what is best to eat, to the <span class="vocab-highlight">technology and production</span> finding new ways to package the food and deliver it to you safely, to the <span class="vocab-highlight">safety</span> of making sure every store who sells said meals are following the correct <span class="vocab-highlight">criteria</span>, and the social aspects studying the consumer group and who is more likely to buy said product, it goes by without saying that people make their entire life’s goal to study and <span class="vocab-highlight">monitor</span> what we <span class="vocab-highlight">consume</span>.`,
+                pt: `A ciência por trás das nossas refeições é algo que, muitas vezes, as pessoas mal consideram. No entanto, a cada mordida que damos, existe um vasto processo científico para garantir a máxima segurança e sabor, além de outros critérios. Da qualidade e composição, na escolha dos melhores alimentos, à tecnologia e produção, buscando novas maneiras de embalá-los e entregá-los com segurança, à segurança, garantindo que todos os estabelecimentos que vendem esses alimentos sigam os critérios corretos, e aos aspectos sociais, estudando o grupo de consumidores e quem tem maior probabilidade de comprar determinado produto, é evidente que muitas pessoas dedicam suas vidas a estudar e monitorar o que consumimos.`,
+                vocab: [
+                    {word: "Scientific", trans: "Científico"},
+                    {word: "Utmost", trans: "Extremo/Máximo"},
+                    {word: "Safety", trans: "Segurança"},
+                    {word: "Deliciousness", trans: "Sabor/Delícia"},
+                    {word: "Composition", trans: "Composição"},
+                    {word: "Technology and production", trans: "Tecnologia e produção"},
+                    {word: "Criteria", trans: "Critérios"},
+                    {word: "Monitor", trans: "Monitorar"},
+                    {word: "Consume", trans: "Consumir"}
+                ]
+            },
+            2: {
+                title: "Qualidade da Água e Alimentos",
+                en: `Within the science of food, there is an area that studies the quality of the water and food we consume. At first glance, this may seem obvious, since we eat food and drink water, but beyond that, the water that enters our bodies also enters the bodies of the animals we eat, where some even find a home inside it. This makes water and food safety <span class="vocab-highlight">essential</span>, both to prevent humans from directly consuming <span class="vocab-highlight">polluted or unsuitable</span> water, and also to prevent the spread of diseases and infections. Pollution of the seas and animals accidentally <span class="vocab-highlight">feeding</span> on <span class="vocab-highlight">garbage</span> can end up with a fish that has eaten plastic on someone's plate or on a cutting board. In <span class="vocab-highlight">England</span>, in the 1980s and 1990s, there was an epidemic of <span class="vocab-highlight">Mad Cow Disease</span>, mainly due to livestock farmers who encouraged cannibalism among animals to cut costs, allowing the disease to evolve, entering the population through meat, and spreading rapidly due to the difficulty in <span class="vocab-highlight">distinguishing</span> between <span class="vocab-highlight">healthy and sick</span> people because of the long <span class="vocab-highlight">incubation period</span>.`,
+                pt: `Dentro da ciência da alimentação, existe a área que estuda a qualidade da água e dos alimentos que consumimos. Á priori, pode parecer óbvio, pois consumimos comida e bebemos água, mas além disso, a água que entra no nosso organismo também entra no corpo dos animais que comemos, onde alguns encontram até moradia dentro dela. Isso torna a segurança da água e dos alimentos essencial, tanto para evitar o consumo direto dos humanos em água poluída ou imprópria, e também para evitar a terceirização de doenças e infecções. A poluição dos mares e os animais acidentalmente alimentando-se de lixo pode acabar com um peixe que comeu plástico no prato de alguém ou na mesa de corte. Na Inglaterra, em 1980 a 1990, houve uma epidemia da doença da Vaca Louca, principalmente por pecuaristas que incentivaram o canibalismo entre os animais para cortar custos, permitindo que a doença evoluísse, entrando na população por meio da carne, e se espalhando rapidamente pela dificuldade de discernir de pessoas saudáveis ou doentes pelo longo período de incubação.`,
+                vocab: [
+                    {word: "Essential", trans: "Essencial"},
+                    {word: "Polluted or unsuitable", trans: "Poluída ou imprópria"},
+                    {word: "Feeding", trans: "Alimentando-se"},
+                    {word: "Garbage", trans: "Lixo"},
+                    {word: "England", trans: "Inglaterra"},
+                    {word: "Mad Cow Disease", trans: "Doença da Vaca Louca"},
+                    {word: "Distinguishing", trans: "Distinguir"},
+                    {word: "Healthy and sick", trans: "Saudáveis e doentes"},
+                    {word: "Incubation period", trans: "Período de incubação"}
+                ]
+            },
+            3: {
+                title: "Inteligência Artificial e Água",
+                en: `Currently, with the increasing popularity of <span class="vocab-highlight">AI</span> (Artificial Intelligence), many prefer to relax in the positive light and significant help that these projects bring to our lives, turning what was once a complicated activity into something <span class="vocab-highlight">simpler</span>. However, this <span class="vocab-highlight">benefit</span> does not come for free. Each <span class="vocab-highlight">prompt</span> from an artificial intelligence, each question or request, <span class="vocab-highlight">overheats</span> the systems of the supercomputers that make that program exist. It becomes so hot that simple <span class="vocab-highlight">air cooling</span> becomes incapable of handling the <span class="vocab-highlight">heat</span>, leading scientists to use water as a quick and efficient source to combat the high temperature. In more <span class="vocab-highlight">arid environments</span>, with <span class="vocab-highlight">scarcity</span>, and in the world in general, this becomes worrying because it is <span class="vocab-highlight">unsustainable</span> in the long term, making scientists fight against the clock to find a more <span class="vocab-highlight">sustainable</span> method to deal with the <span class="vocab-highlight">demand</span>.`,
+                pt: `Atualmente, com o avanço da popularidade das IA’s(Inteligência Artificial), muitos preferem descansar em frente a luz positiva e a ajuda significativa que esses projetos trazem a nossa vida. Deixando, outrora, uma atividade complicada em algo mais simples. Porém, esse benefício não vem gratuitamente. Cada prompt de uma inteligência artificial, cada pergunta ou pedido, superaquece os sistemas dos supercomputadores que fazem aquele programa existir. Ele se torna quente de tal forma que a simples refrigeração por ar se torna incapaz de lidar com o calor, fazendo cientistas utilizarem da água para uma fonte rápida e eficiente de combater a temperatura elevada. Em ambientes mais áridos, com escassez, e no mundo em geral, isso se torna preocupante pois é inviável a longo-termo, fazendo cientistas lutarem uma briga contra um relógio para encontrar um método mais sustentável de lidar com a demanda.`,
+                vocab: [
+                    {word: "AI", trans: "IA (Inteligência Artificial)"},
+                    {word: "Simpler", trans: "Mais simples"},
+                    {word: "Benefit", trans: "Benefício"},
+                    {word: "Overheats", trans: "Superaquece"},
+                    {word: "Prompt", trans: "Prompt (comando/pedido)"},
+                    {word: "Air cooling", trans: "Refrigeração a ar"},
+                    {word: "Heat", trans: "Calor"},
+                    {word: "Arid environments", trans: "Ambientes áridos"},
+                    {word: "Scarcity", trans: "Escassez"},
+                    {word: "Unsustainable", trans: "Insustentável"},
+                    {word: "Sustainable", trans: "Sustentável"},
+                    {word: "Demand", trans: "Demanda"}
+                ]
+            }
+        };
+
+        function navTo(screenId) {
+            fecharModalTexto();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-' + screenId).classList.add('active');
+        }
+
+        function abrirModalTexto(id) {
+            const data = textsData[id];
+            if (!data) return;
+
+            const modal = document.getElementById('text-modal');
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body-content');
+
+            title.innerText = data.title;
+            
+            let vocabHTML = '';
+            data.vocab.forEach(v => {
+                vocabHTML += `<div class="vocab-item"><strong>${v.word}</strong> <span>${v.trans}</span></div>`;
+            });
+
+            body.innerHTML = `
+                <div class="lang-block">
+                    <div class="lang-label"><img src="https://flagcdn.com/w20/us.png"> English</div>
+                    <p class="lang-text en-text">${data.en}</p>
+                </div>
+                <div class="lang-block">
+                    <div class="lang-label"><img src="https://flagcdn.com/w20/br.png"> Português</div>
+                    <p class="lang-text">${data.pt}</p>
+                </div>
+                <div class="vocab-section">
+                    <div class="vocab-title">📚 Vocabulário Técnico</div>
+                    <div class="vocab-grid">${vocabHTML}</div>
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.classList.add('open'); }, 10);
+        }
+
+        function fecharModalTexto() {
+            const modal = document.getElementById('text-modal');
+            modal.classList.remove('open');
+            setTimeout(() => { modal.style.display = 'none'; }, 200);
+        }
+
+        function check(btn, isCorrect) {
+            const parent = btn.parentElement;
+            Array.from(parent.children).forEach(child => {
+                child.classList.remove('correct', 'wrong');
+            });
+            if(isCorrect) {
+                btn.classList.add('correct');
+            } else {
+                btn.classList.add('wrong');
+            }
+        }
+    </script>
+</body>
+</html>
